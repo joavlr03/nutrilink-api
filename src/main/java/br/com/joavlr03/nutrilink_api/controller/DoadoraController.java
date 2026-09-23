@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import br.com.joavlr03.nutrilink_api.dto.doadora.DoadoraCreateRequest;
 import br.com.joavlr03.nutrilink_api.dto.doadora.DoadoraMapper;
 import br.com.joavlr03.nutrilink_api.dto.doadora.DoadoraResponse;
+import br.com.joavlr03.nutrilink_api.dto.doadora.DoadoraUpdateRequest;
 import br.com.joavlr03.nutrilink_api.model.Doadora;
 import br.com.joavlr03.nutrilink_api.service.DoadoraService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,6 +43,12 @@ public class DoadoraController {
         Doadora doadora = mapper.toModel(request);
         doadora = service.create(doadora);
         return mapper.toDto(doadora);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualizar dados cadastrais da doadora (CPF e status não são alterados)")
+    public DoadoraResponse update(@PathVariable UUID id, @RequestBody @Valid DoadoraUpdateRequest request) {
+        return mapper.toDto(service.update(id, mapper.toModel(request)));
     }
 
     @GetMapping("/{id}")

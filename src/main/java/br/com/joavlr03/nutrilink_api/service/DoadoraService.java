@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import br.com.joavlr03.nutrilink_api.model.Doadora;
 import br.com.joavlr03.nutrilink_api.model.enums.StatusCadastro;
@@ -24,12 +25,26 @@ public class DoadoraService {
             throw new IllegalArgumentException("CPF já cadastrado: " + doadora.getCpf());
         }
 
-        int idade = Period.between(doadora.getDataNascimento(), LocalDate.now()).getYears();
-        if (idade < 18) {
-            throw new IllegalArgumentException("Doadora deve ser maior de idade.");
-        }
+        validarMaioridade(doadora.getDataNascimento());
 
         doadora.setStatusCadastro(StatusCadastro.PENDENTE);
+
+        return repository.save(doadora);
+    }
+
+    /** Atualiza os dados cadastrais. CPF e statusCadastro são preservados. */
+    @Transactional
+    public Doadora update(UUID id, Doadora dados) {
+        Doadora doadora = repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Doadora não encontrada: " + id));
+
+        validarMaioridade(dados.getDataNascimento());
+
+        doadora.setNomeCompleto(dados.getNomeCompleto());
+        doadora.setDataNascimento(dados.getDataNascimento());
+        doadora.setTelefone(dados.getTelefone());
+        doadora.setCep(dados.getCep());
+        doadora.setEnderecoCompleto(dados.getEnderecoCompleto());
 
         return repository.save(doadora);
     }
@@ -51,5 +66,12 @@ public class DoadoraService {
 
     public Doadora save(Doadora doadora) {
         return repository.save(doadora);
+    }
+
+    private void validarMaioridade(LocalDate dataNascimento) {
+        int idade = Period.between(dataNascimento, LocalDate.now()).getYears();
+        if (idade < 18) {
+            throw new IllegalArgumentException("Doadora deve ser maior de idade.");
+        }
     }
 }

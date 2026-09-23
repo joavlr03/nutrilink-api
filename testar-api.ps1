@@ -254,6 +254,13 @@ Test-Step -Name "Inativar credencial" -Method PATCH -Path "$V/profissionais-saud
     -Fields @{ credencialAtiva = "False" } | Out-Null
 Test-Step -Name "Reativar credencial" -Method PATCH -Path "$V/profissionais-saude/$ANA/reativar" -Expected 200 `
     -Fields @{ credencialAtiva = "True" } | Out-Null
+Test-Step -Name "Atualizar profissional (PUT)" -Method PUT -Path "$V/profissionais-saude/$ANA" -Expected 200 `
+    -Body @{ nomeCompleto = "Carlos Lima Junior"; registroConselho = "COREN-SP $sfx"; tipoProfissional = "ANALISTA_NIVEL_1" } `
+    -Fields @{ nomeCompleto = "Carlos Lima Junior"; credencialAtiva = "True" } | Out-Null
+Test-Step -Name "PUT com registro de outro profissional" -Method PUT -Path "$V/profissionais-saude/$ANA" -Expected 400 `
+    -Body @{ nomeCompleto = "Carlos"; registroConselho = "CRM-SP $sfx"; tipoProfissional = "ANALISTA_NIVEL_1" } | Out-Null
+Test-Step -Name "PUT profissional inexistente" -Method PUT -Path "$V/profissionais-saude/$ZERO_UUID" -Expected 404 `
+    -Body @{ nomeCompleto = "X"; registroConselho = "Y-$sfx"; tipoProfissional = "ANALISTA_NIVEL_1" } | Out-Null
 
 # -----------------------------------------------------------------------------
 #  2. Doadoras
@@ -283,6 +290,16 @@ Test-Step -Name "Listar doadoras" -Method GET -Path "$V/doadoras" -Expected 200 
 Test-Step -Name "ID inexistente" -Method GET -Path "$V/doadoras/$ZERO_UUID" -Expected 404 `
     -Hint "Se veio 500, falta o GlobalExceptionHandler." | Out-Null
 Test-Step -Name "ID em formato invalido" -Method GET -Path "$V/doadoras/abc" -Expected 400 | Out-Null
+Test-Step -Name "Atualizar doadora (PUT, CPF e status preservados)" -Method PUT -Path "$V/doadoras/$DOA" -Expected 200 `
+    -Body @{ nomeCompleto = "Maria Oliveira Santos"; dataNascimento = "1995-04-20"; telefone = "11911112222"; cep = "07010000"; enderecoCompleto = "Rua Nova, 200" } `
+    -Fields @{ nomeCompleto = "Maria Oliveira Santos"; telefone = "11911112222"; cpf = $cpf1; statusCadastro = "PENDENTE" } | Out-Null
+Test-Step -Name "PUT doadora com CEP invalido" -Method PUT -Path "$V/doadoras/$DOA" -Expected 400 `
+    -Body @{ nomeCompleto = "Maria"; dataNascimento = "1995-04-20"; telefone = "11911112222"; cep = "07A10"; enderecoCompleto = "Rua Nova, 200" } `
+    -HasFields @("campos") | Out-Null
+Test-Step -Name "PUT doadora menor de idade" -Method PUT -Path "$V/doadoras/$DOA" -Expected 400 `
+    -Body @{ nomeCompleto = "Maria"; dataNascimento = $nascMenor; telefone = "11911112222"; cep = "07010000"; enderecoCompleto = "Rua Nova, 200" } | Out-Null
+Test-Step -Name "PUT doadora inexistente" -Method PUT -Path "$V/doadoras/$ZERO_UUID" -Expected 404 `
+    -Body @{ nomeCompleto = "Maria"; dataNascimento = "1995-04-20"; telefone = "11911112222"; cep = "07010000"; enderecoCompleto = "Rua Nova, 200" } | Out-Null
 
 # -----------------------------------------------------------------------------
 #  3. Corredores logisticos
@@ -303,6 +320,11 @@ Test-Step -Name "Corredor sem campos obrigatorios" -Method POST -Path "$V/logist
 Test-Step -Name "Buscar corredor por ID" -Method GET -Path "$V/logistica/$COR" -Expected 200 | Out-Null
 Test-Step -Name "Listar corredores" -Method GET -Path "$V/logistica" -Expected 200 -MinCount 2 | Out-Null
 Test-Step -Name "Listar corredores ativos" -Method GET -Path "$V/logistica/ativos" -Expected 200 -MinCount 1 | Out-Null
+Test-Step -Name "Atualizar corredor (PUT, homologacao preservada)" -Method PUT -Path "$V/logistica/$COR" -Expected 200 `
+    -Body @{ nomeCorredor = "Corredor Guarulhos Ampliado $sfx"; cepsAtendidos = "070,071,072,073" } `
+    -Fields @{ cepsAtendidos = "070,071,072,073"; statusHomologacao = "True" } | Out-Null
+Test-Step -Name "PUT corredor com CEPs em formato invalido" -Method PUT -Path "$V/logistica/$COR" -Expected 400 `
+    -Body @{ nomeCorredor = "Corredor"; cepsAtendidos = "abc" } | Out-Null
 
 # -----------------------------------------------------------------------------
 #  4. Triagem
@@ -322,9 +344,10 @@ $TRI = Get-Id $r "triagem"
 Test-Step -Name "Doadora passou para APROVADA" -Method GET -Path "$V/doadoras/$DOA" -Expected 200 `
     -Fields @{ statusCadastro = "APROVADA" } | Out-Null
 
-Test-Step -Name "Triagem que exige revisao humana (score 60)" -Method POST -Path "$V/triagens" -Expected 201 `
+$r = Test-Step -Name "Triagem que exige revisao humana (score 60)" -Method POST -Path "$V/triagens" -Expected 201 `
     -Body @{ doadoraId = $DOA2; respostasQuestionario = $questionarioRevisao } `
-    -Fields @{ scoreRisco = "60"; statusTriagem = "PENDENTE_REVISAO"; requerValidacaoHumana = "True" } | Out-Null
+    -Fields @{ scoreRisco = "60"; statusTriagem = "PENDENTE_REVISAO"; requerValidacaoHumana = "True" }
+$TRI2 = Get-Id $r "triagem pendente de revisao"
 
 Test-Step -Name "Triagem com especialista no lugar de analista" -Method POST -Path "$V/triagens" -Expected 400 `
     -Body @{ doadoraId = $DOA2; profissionalId = $ESP; respostasQuestionario = $questionarioOk } | Out-Null
@@ -333,6 +356,22 @@ Test-Step -Name "Buscar triagem por ID" -Method GET -Path "$V/triagens/$TRI" -Ex
 Test-Step -Name "Listar triagens" -Method GET -Path "$V/triagens" -Expected 200 -MinCount 2 | Out-Null
 Test-Step -Name "Listar triagens da doadora" -Method GET -Path "$V/triagens/doadora/$DOA" -Expected 200 -MinCount 1 | Out-Null
 Test-Step -Name "Listar triagens pendentes de revisao" -Method GET -Path "$V/triagens/pendentes-revisao" -Expected 200 -MinCount 1 | Out-Null
+
+Test-Step -Name "Revisao feita por especialista (nao analista)" -Method PATCH -Path "$V/triagens/$TRI2/revisar" -Expected 400 `
+    -Body @{ profissionalId = $ESP; decisao = "APROVADA"; parecerProfissional = "Apta." } | Out-Null
+Test-Step -Name "Revisao com decisao PENDENTE_REVISAO" -Method PATCH -Path "$V/triagens/$TRI2/revisar" -Expected 400 `
+    -Body @{ profissionalId = $ANA; decisao = "PENDENTE_REVISAO"; parecerProfissional = "Apta." } | Out-Null
+Test-Step -Name "Revisao sem parecer" -Method PATCH -Path "$V/triagens/$TRI2/revisar" -Expected 400 `
+    -Body @{ profissionalId = $ANA; decisao = "APROVADA" } | Out-Null
+Test-Step -Name "Revisao de triagem ja APROVADA" -Method PATCH -Path "$V/triagens/$TRI/revisar" -Expected 409 `
+    -Body @{ profissionalId = $ANA; decisao = "APROVADA"; parecerProfissional = "Apta." } | Out-Null
+Test-Step -Name "Analista aprova triagem pendente" -Method PATCH -Path "$V/triagens/$TRI2/revisar" -Expected 200 `
+    -Body @{ profissionalId = $ANA; decisao = "APROVADA"; parecerProfissional = "Medicamento compativel com a amamentacao. Apta para doacao." } `
+    -Fields @{ statusTriagem = "APROVADA"; requerValidacaoHumana = "False"; profissionalId = $ANA } | Out-Null
+Test-Step -Name "Segunda doadora passou para APROVADA" -Method GET -Path "$V/doadoras/$DOA2" -Expected 200 `
+    -Fields @{ statusCadastro = "APROVADA" } | Out-Null
+Test-Step -Name "Revisar de novo a mesma triagem" -Method PATCH -Path "$V/triagens/$TRI2/revisar" -Expected 409 `
+    -Body @{ profissionalId = $ANA; decisao = "REPROVADA"; parecerProfissional = "Mudanca de ideia." } | Out-Null
 
 # -----------------------------------------------------------------------------
 #  5. Coletas
@@ -363,6 +402,19 @@ Test-Step -Name "Buscar coleta por ID" -Method GET -Path "$V/coleta/$COL" -Expec
 Test-Step -Name "Listar coletas" -Method GET -Path "$V/coleta" -Expected 200 -MinCount 1 | Out-Null
 Test-Step -Name "Listar coletas da doadora" -Method GET -Path "$V/coleta/doadora/$DOA" -Expected 200 -MinCount 1 | Out-Null
 Test-Step -Name "Listar coletas por status" -Method GET -Path "$V/coleta/status/EM_ROTA" -Expected 200 -MinCount 1 | Out-Null
+Test-Step -Name "Transicao invalida EM_ROTA -> AGENDADA" -Method PATCH -Path "$V/coleta/$COL/status/AGENDADA" -Expected 409 | Out-Null
+Test-Step -Name "Transicao EM_ROTA -> CONCLUIDA" -Method PATCH -Path "$V/coleta/$COL/status/CONCLUIDA" -Expected 200 `
+    -Fields @{ statusColeta = "CONCLUIDA" } | Out-Null
+Test-Step -Name "Coleta CONCLUIDA nao pode ser cancelada" -Method PATCH -Path "$V/coleta/$COL/status/CANCELADA" -Expected 409 | Out-Null
+
+$r = Test-Step -Name "Agendar segunda coleta" -Method POST -Path "$V/coleta" -Expected 201 `
+    -Body @{ doadoraId = $DOA; corredorId = $COR; dataAgendada = $dataFutura; volumeEstimadoMl = 150 }
+$COL2 = Get-Id $r "segunda coleta"
+Test-Step -Name "Transicao invalida AGENDADA -> CONCLUIDA" -Method PATCH -Path "$V/coleta/$COL2/status/CONCLUIDA" -Expected 409 | Out-Null
+Test-Step -Name "Cancelar coleta agendada" -Method PATCH -Path "$V/coleta/$COL2/status/CANCELADA" -Expected 200 `
+    -Fields @{ statusColeta = "CANCELADA" } | Out-Null
+Test-Step -Name "Coleta CANCELADA nao volta para EM_ROTA" -Method PATCH -Path "$V/coleta/$COL2/status/EM_ROTA" -Expected 409 | Out-Null
+Test-Step -Name "Sincronizar coleta cancelada e bloqueado" -Method POST -Path "$V/sincronizacoes" -Expected 409 -Body @{ coletaId = $COL2 } | Out-Null
 
 # -----------------------------------------------------------------------------
 #  6. Sincronizacao

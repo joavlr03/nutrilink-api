@@ -1,10 +1,15 @@
 package br.com.joavlr03.nutrilink_api.service;
 
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import br.com.joavlr03.nutrilink_api.model.Coleta;
 import br.com.joavlr03.nutrilink_api.model.CorredorLogistico;
@@ -16,9 +21,24 @@ import br.com.joavlr03.nutrilink_api.repository.CorredorLogisticoRepository;
 import br.com.joavlr03.nutrilink_api.repository.DoadoraRepository;
 import jakarta.persistence.EntityNotFoundException;
 
-@Service 
+@Service
 public class ColetaService {
-     private final ColetaRepository repository;
+
+    /**
+     * Transições permitidas:
+     *   AGENDADA -> EM_ROTA | CANCELADA
+     *   EM_ROTA  -> CONCLUIDA | CANCELADA
+     *   CONCLUIDA e CANCELADA são estados finais.
+     */
+    private static final Map<StatusColeta, Set<StatusColeta>> TRANSICOES = new EnumMap<>(StatusColeta.class);
+    static {
+        TRANSICOES.put(StatusColeta.AGENDADA,  EnumSet.of(StatusColeta.EM_ROTA, StatusColeta.CANCELADA));
+        TRANSICOES.put(StatusColeta.EM_ROTA,   EnumSet.of(StatusColeta.CONCLUIDA, StatusColeta.CANCELADA));
+        TRANSICOES.put(StatusColeta.CONCLUIDA, EnumSet.noneOf(StatusColeta.class));
+        TRANSICOES.put(StatusColeta.CANCELADA, EnumSet.noneOf(StatusColeta.class));
+    }
+
+    private final ColetaRepository repository;
     private final DoadoraRepository doadoraRepository;
     private final CorredorLogisticoRepository corredorRepository;
 
@@ -31,6 +51,7 @@ public class ColetaService {
         this.corredorRepository = corredorRepository;
     }
 
+    @Transactional
     public Coleta create(Coleta coleta, UUID doadoraId, UUID corredorId) {
 
         // 1. Resolve doadora
@@ -82,9 +103,20 @@ public class ColetaService {
         return repository.findByStatusColeta(status);
     }
 
+    @Transactional
     public Coleta atualizarStatus(UUID id, StatusColeta novoStatus) {
         Coleta coleta = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Coleta não encontrada: " + id));
+
+        StatusColeta atual = coleta.getStatusColeta();
+        Set<StatusColeta> permitidos = TRANSICOES.getOrDefault(atual, EnumSet.noneOf(StatusColeta.class));
+
+        if (!permitidos.contains(novoStatus)) {
+            String opcoes = permitidos.isEmpty() ? "nenhuma (status final)" : permitidos.toString();
+            throw new IllegalStateException(
+                "Transição inválida: " + atual + " -> " + novoStatus + ". Transições permitidas: " + opcoes + ".");
+        }
+
         coleta.setStatusColeta(novoStatus);
         return repository.save(coleta);
     }

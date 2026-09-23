@@ -3,6 +3,7 @@ package br.com.joavlr03.nutrilink_api.controller;
 import br.com.joavlr03.nutrilink_api.dto.triagem.TriagemCreateRequest;
 import br.com.joavlr03.nutrilink_api.dto.triagem.TriagemMapper;
 import br.com.joavlr03.nutrilink_api.dto.triagem.TriagemResponse;
+import br.com.joavlr03.nutrilink_api.dto.triagem.TriagemRevisaoRequest;
 import br.com.joavlr03.nutrilink_api.model.Triagem;
 import br.com.joavlr03.nutrilink_api.service.TriagemService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +36,16 @@ public class TriagemController {
         Triagem triagem = mapper.toModel(request);
         triagem = service.create(triagem, request.getDoadoraId(), request.getProfissionalId());
         return mapper.toDto(triagem);
+    }
+
+    @PatchMapping("/{id}/revisar")
+    @Operation(summary = "Revisão humana de triagem PENDENTE_REVISAO por analista nível 1")
+    public TriagemResponse revisar(@PathVariable UUID id, @RequestBody @Valid TriagemRevisaoRequest request) {
+        return mapper.toDto(service.revisar(
+                id,
+                request.getProfissionalId(),
+                request.getDecisao(),
+                request.getParecerProfissional()));
     }
 
     @GetMapping("/{id}")

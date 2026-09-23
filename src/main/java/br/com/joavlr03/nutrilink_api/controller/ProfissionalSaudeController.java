@@ -3,6 +3,7 @@ package br.com.joavlr03.nutrilink_api.controller;
 import br.com.joavlr03.nutrilink_api.dto.profissionalsaude.ProfissionalSaudeCreateRequest;
 import br.com.joavlr03.nutrilink_api.dto.profissionalsaude.ProfissionalSaudeMapper;
 import br.com.joavlr03.nutrilink_api.dto.profissionalsaude.ProfissionalSaudeResponse;
+import br.com.joavlr03.nutrilink_api.dto.profissionalsaude.ProfissionalSaudeUpdateRequest;
 import br.com.joavlr03.nutrilink_api.model.ProfissionalSaude;
 import br.com.joavlr03.nutrilink_api.model.enums.TipoProfissional;
 import br.com.joavlr03.nutrilink_api.service.ProfissionalSaudeService;
@@ -36,6 +37,13 @@ public class ProfissionalSaudeController {
         ProfissionalSaude profissional = mapper.toModel(request);
         profissional = service.create(profissional);
         return mapper.toDto(profissional);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualizar profissional de saúde (credencial não é alterada)")
+    public ProfissionalSaudeResponse update(@PathVariable UUID id,
+                                            @RequestBody @Valid ProfissionalSaudeUpdateRequest request) {
+        return mapper.toDto(service.update(id, mapper.toModel(request)));
     }
 
     @GetMapping("/{id}")

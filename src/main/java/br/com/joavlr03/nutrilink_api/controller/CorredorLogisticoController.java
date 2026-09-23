@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -17,14 +18,17 @@ import org.springframework.web.bind.annotation.RestController;
 import br.com.joavlr03.nutrilink_api.dto.corredorlogistico.CorredorLogisticoCreateRequest;
 import br.com.joavlr03.nutrilink_api.dto.corredorlogistico.CorredorLogisticoMapper;
 import br.com.joavlr03.nutrilink_api.dto.corredorlogistico.CorredorLogisticoResponse;
+import br.com.joavlr03.nutrilink_api.dto.corredorlogistico.CorredorLogisticoUpdateRequest;
 import br.com.joavlr03.nutrilink_api.model.CorredorLogistico;
 import br.com.joavlr03.nutrilink_api.service.CorredorLogisticoService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v2/logistica")
+@Tag(name = "Corredores Logísticos", description = "Gerenciamento de corredores e CEPs atendidos")
 public class CorredorLogisticoController {
     private final CorredorLogisticoService service;
     private final CorredorLogisticoMapper mapper;
@@ -41,6 +45,13 @@ public class CorredorLogisticoController {
         CorredorLogistico corredor = mapper.toModel(request);
         corredor = service.create(corredor);
         return mapper.toDto(corredor);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualizar nome e CEPs atendidos do corredor")
+    public CorredorLogisticoResponse update(@PathVariable UUID id,
+                                            @RequestBody @Valid CorredorLogisticoUpdateRequest request) {
+        return mapper.toDto(service.update(id, mapper.toModel(request)));
     }
 
     @GetMapping("/{id}")

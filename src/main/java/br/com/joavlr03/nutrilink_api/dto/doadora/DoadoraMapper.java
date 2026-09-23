@@ -4,12 +4,23 @@ import org.springframework.stereotype.Component;
 
 import br.com.joavlr03.nutrilink_api.model.Doadora;
 
-@Component 
+@Component
 public class DoadoraMapper {
     public Doadora toModel(DoadoraCreateRequest request) {
         Doadora doadora = new Doadora();
         doadora.setNomeCompleto(request.getNomeCompleto());
         doadora.setCpf(request.getCpf());
+        doadora.setDataNascimento(request.getDataNascimento());
+        doadora.setTelefone(request.getTelefone());
+        doadora.setCep(request.getCep());
+        doadora.setEnderecoCompleto(request.getEnderecoCompleto());
+        return doadora;
+    }
+
+    /** Dados novos para atualização (sem ID, CPF e status, que não mudam por aqui). */
+    public Doadora toModel(DoadoraUpdateRequest request) {
+        Doadora doadora = new Doadora();
+        doadora.setNomeCompleto(request.getNomeCompleto());
         doadora.setDataNascimento(request.getDataNascimento());
         doadora.setTelefone(request.getTelefone());
         doadora.setCep(request.getCep());

@@ -14,6 +14,14 @@ public class ProfissionalSaudeMapper {
         return profissional;
     }
 
+    public ProfissionalSaude toModel(ProfissionalSaudeUpdateRequest request) {
+        ProfissionalSaude profissional = new ProfissionalSaude();
+        profissional.setNomeCompleto(request.getNomeCompleto());
+        profissional.setRegistroConselho(request.getRegistroConselho());
+        profissional.setTipoProfissional(request.getTipoProfissional());
+        return profissional;
+    }
+
     public ProfissionalSaudeResponse toDto(ProfissionalSaude profissional) {
         ProfissionalSaudeResponse response = new ProfissionalSaudeResponse();
         response.setId(profissional.getId());

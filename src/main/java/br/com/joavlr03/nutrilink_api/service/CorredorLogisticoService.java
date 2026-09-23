@@ -5,14 +5,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import br.com.joavlr03.nutrilink_api.model.CorredorLogistico;
 import br.com.joavlr03.nutrilink_api.repository.CorredorLogisticoRepository;
 import jakarta.persistence.EntityNotFoundException;
 
-@Service 
+@Service
 public class CorredorLogisticoService {
-     private final CorredorLogisticoRepository repository;
+    private final CorredorLogisticoRepository repository;
 
     public CorredorLogisticoService(CorredorLogisticoRepository repository) {
         this.repository = repository;
@@ -20,6 +21,15 @@ public class CorredorLogisticoService {
 
     public CorredorLogistico create(CorredorLogistico corredor) {
         corredor.setStatusHomologacao(true);
+        return repository.save(corredor);
+    }
+
+    /** Atualiza nome e CEPs atendidos. A homologação é mantida. */
+    @Transactional
+    public CorredorLogistico update(UUID id, CorredorLogistico dados) {
+        CorredorLogistico corredor = buscarOuFalhar(id);
+        corredor.setNomeCorredor(dados.getNomeCorredor());
+        corredor.setCepsAtendidos(dados.getCepsAtendidos());
         return repository.save(corredor);
     }
 
@@ -36,22 +46,19 @@ public class CorredorLogisticoService {
     }
 
     public CorredorLogistico desabilitar(UUID id) {
-        CorredorLogistico corredor = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Corredor não encontrado: " + id));
+        CorredorLogistico corredor = buscarOuFalhar(id);
         corredor.setStatusHomologacao(false);
         return repository.save(corredor);
     }
 
     public CorredorLogistico habilitar(UUID id) {
-        CorredorLogistico corredor = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Corredor não encontrado: " + id));
+        CorredorLogistico corredor = buscarOuFalhar(id);
         corredor.setStatusHomologacao(true);
         return repository.save(corredor);
     }
 
     public boolean validarCepNoCorredor(UUID corredorId, String cep) {
-        CorredorLogistico corredor = repository.findById(corredorId)
-                .orElseThrow(() -> new EntityNotFoundException("Corredor não encontrado: " + corredorId));
+        CorredorLogistico corredor = buscarOuFalhar(corredorId);
 
         if (!corredor.getStatusHomologacao()) {
             throw new IllegalStateException("Corredor desabilitado: " + corredorId);
@@ -66,5 +73,10 @@ public class CorredorLogisticoService {
             throw new EntityNotFoundException("Corredor não encontrado: " + id);
         }
         repository.deleteById(id);
+    }
+
+    private CorredorLogistico buscarOuFalhar(UUID id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Corredor não encontrado: " + id));
     }
 }

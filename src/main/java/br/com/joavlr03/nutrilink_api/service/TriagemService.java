@@ -11,6 +11,7 @@ import br.com.joavlr03.nutrilink_api.repository.ProfissionalSaudeRepository;
 import br.com.joavlr03.nutrilink_api.repository.TriagemRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +37,7 @@ public class TriagemService {
         this.doadoraService = doadoraService;
     }
 
+    @Transactional
     public Triagem create(Triagem triagem, UUID doadoraId, UUID profissionalId) {
 
         // 1. Resolve doadora
@@ -45,18 +47,7 @@ public class TriagemService {
 
         // 2. Resolve profissional (opcional)
         if (profissionalId != null) {
-            ProfissionalSaude profissional = profissionalRepository.findById(profissionalId)
-                    .orElseThrow(() -> new EntityNotFoundException("Profissional não encontrado: " + profissionalId));
-
-            if (profissional.getTipoProfissional() != TipoProfissional.ANALISTA_NIVEL_1) {
-                throw new IllegalArgumentException("Apenas analistas de nível 1 podem revisar triagens.");
-            }
-
-            if (!profissional.getCredencialAtiva()) {
-                throw new IllegalArgumentException("Profissional com credencial inativa.");
-            }
-
-            triagem.setProfissional(profissional);
+            triagem.setProfissional(buscarAnalistaAtivo(profissionalId));
         }
 
         // 3. Calcula scoreRisco com base nas respostas
@@ -75,11 +66,44 @@ public class TriagemService {
             triagem.setStatusTriagem(StatusTriagem.REPROVADA);
         }
 
-        // 5. Atualiza statusCadastro da Doadora — único ponto do sistema que faz isso
+        // 5. Atualiza statusCadastro da Doadora
         atualizarStatusDoadora(doadora, triagem.getStatusTriagem());
 
         // 6. Seta timestamp
         triagem.setDataRealizacao(LocalDateTime.now());
+
+        return repository.save(triagem);
+    }
+
+    /**
+     * Revisão humana: um ANALISTA_NIVEL_1 ativo decide uma triagem PENDENTE_REVISAO,
+     * registrando o parecer. A decisão atualiza o status da doadora.
+     */
+    @Transactional
+    public Triagem revisar(UUID triagemId, UUID profissionalId, StatusTriagem decisao, String parecer) {
+        Triagem triagem = repository.findById(triagemId)
+                .orElseThrow(() -> new EntityNotFoundException("Triagem não encontrada: " + triagemId));
+
+        if (triagem.getStatusTriagem() != StatusTriagem.PENDENTE_REVISAO) {
+            throw new IllegalStateException(
+                "Somente triagens PENDENTE_REVISAO podem ser revisadas. Status atual: "
+                + triagem.getStatusTriagem() + ".");
+        }
+
+        if (decisao != StatusTriagem.APROVADA && decisao != StatusTriagem.REPROVADA) {
+            throw new IllegalArgumentException("A decisão da revisão deve ser APROVADA ou REPROVADA.");
+        }
+
+        ProfissionalSaude analista = buscarAnalistaAtivo(profissionalId);
+
+        triagem.setProfissional(analista);
+        triagem.setParecerProfissional(parecer);
+        triagem.setStatusTriagem(decisao);
+        triagem.setRequerValidacaoHumana(false);
+
+        Doadora doadora = doadoraRepository.findById(triagem.getDoadora().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Doadora da triagem não encontrada."));
+        atualizarStatusDoadora(doadora, decisao);
 
         return repository.save(triagem);
     }
@@ -108,6 +132,21 @@ public class TriagemService {
     }
 
     // --- Métodos internos ---
+
+    private ProfissionalSaude buscarAnalistaAtivo(UUID profissionalId) {
+        ProfissionalSaude profissional = profissionalRepository.findById(profissionalId)
+                .orElseThrow(() -> new EntityNotFoundException("Profissional não encontrado: " + profissionalId));
+
+        if (profissional.getTipoProfissional() != TipoProfissional.ANALISTA_NIVEL_1) {
+            throw new IllegalArgumentException("Apenas analistas de nível 1 podem revisar triagens.");
+        }
+
+        if (!profissional.getCredencialAtiva()) {
+            throw new IllegalArgumentException("Profissional com credencial inativa.");
+        }
+
+        return profissional;
+    }
 
     private int calcularScoreRisco(String respostasJson) {
         if (respostasJson == null || respostasJson.isBlank()) return 0;

@@ -4,9 +4,16 @@ import org.springframework.stereotype.Component;
 
 import br.com.joavlr03.nutrilink_api.model.CorredorLogistico;
 
-@Component 
+@Component
 public class CorredorLogisticoMapper {
-     public CorredorLogistico toModel(CorredorLogisticoCreateRequest request) {
+    public CorredorLogistico toModel(CorredorLogisticoCreateRequest request) {
+        CorredorLogistico corredor = new CorredorLogistico();
+        corredor.setNomeCorredor(request.getNomeCorredor());
+        corredor.setCepsAtendidos(request.getCepsAtendidos());
+        return corredor;
+    }
+
+    public CorredorLogistico toModel(CorredorLogisticoUpdateRequest request) {
         CorredorLogistico corredor = new CorredorLogistico();
         corredor.setNomeCorredor(request.getNomeCorredor());
         corredor.setCepsAtendidos(request.getCepsAtendidos());

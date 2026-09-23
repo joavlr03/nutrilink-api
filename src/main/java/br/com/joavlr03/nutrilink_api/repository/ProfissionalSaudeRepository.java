@@ -15,15 +15,10 @@ public interface ProfissionalSaudeRepository extends JpaRepository<ProfissionalS
 
     boolean existsByRegistroConselho(String registroConselho);
 
+    /** Usado na atualização: o registro não pode pertencer a OUTRO profissional. */
+    boolean existsByRegistroConselhoAndIdNot(String registroConselho, UUID id);
+
     List<ProfissionalSaude> findByTipoProfissional(TipoProfissional tipoProfissional);
 
     List<ProfissionalSaude> findByCredencialAtivaTrue();
-
-    Optional<ProfissionalSaude> findById(UUID id);
-
-    List<ProfissionalSaude> findAll();
-
-    boolean existsById(UUID id);
-
-    void deleteById(UUID id);
 }

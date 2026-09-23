@@ -280,33 +280,256 @@ Documentação interativa disponível via Swagger UI (ver seção [Como Executar
 ---
  
 ## ▶️ Como Executar
- 
-1. Clonar o repositório
+
+### Pré-requisitos
+
+- JDK 17 ou 21
+- Docker (para o MySQL). Se preferir um MySQL instalado localmente, pule o passo 2 e garanta um usuário `root` com senha `root_pwd`.
+- Não é necessário instalar o Maven, pois o projeto inclui o Maven Wrapper (`mvnw`).
+
+### 1. Clonar o repositório
+
 ```bash
 git clone https://github.com/joavlr03/nutrilink-api.git
 cd nutrilink-api
 ```
- 
-2. Criar o banco de dados MySQL `nutrilink` (ou ajustar `spring.datasource.url` em `src/main/resources/application.properties`)
-  docker run -d --name mysql --rm -e MYSQL_ROOT_PASSWORD=root_pwd -e MYSQL_USER=new_user -e MYSQL_PASSWORD=my_pwd -p 3306:3306 mysql
 
-4. Configurar as credenciais de acesso ao banco em `application.properties`, se necessário:
+### 2. Subir o MySQL com Docker
+
+```bash
+docker run -d --name nutrilink-mysql \
+  -e MYSQL_ROOT_PASSWORD=root_pwd \
+  -e MYSQL_DATABASE=nutrilink \
+  -p 3306:3306 \
+  mysql:8.4
+```
+
+O banco `nutrilink` é criado automaticamente pelo container, e as tabelas são criadas pelo Hibernate (`ddl-auto=update`) na primeira execução. Aguarde de 20 a 30 segundos até o MySQL terminar de inicializar. Para acompanhar, use `docker logs -f nutrilink-mysql` e espere a mensagem `ready for connections`.
+
+> Se a porta 3306 já estiver em uso, troque para `-p 3307:3306` e ajuste a porta em `spring.datasource.url`.
+
+### 3. Conferir a configuração (`src/main/resources/application.properties`)
+
 ```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/nutrilink
+spring.datasource.url=jdbc:mysql://localhost:3306/nutrilink?createDatabaseIfNotExist=true
 spring.datasource.username=root
 spring.datasource.password=root_pwd
 ```
- 
-4. Executar a aplicação com o Maven Wrapper
+
+### 4. Executar a aplicação
+
+Linux / macOS:
 ```bash
 ./mvnw spring-boot:run
 ```
- 
-5. A API sobe na porta configurada em `server.port` (**9000**). A documentação Swagger UI fica disponível na raiz (`springdoc.swagger-ui.path=/`):
+
+Windows (PowerShell ou CMD):
+```bash
+mvnw.cmd spring-boot:run
 ```
-http://localhost:9000/
+
+A API sobe na porta **9000**. A documentação Swagger UI fica na raiz: **http://localhost:9000/**
+
+### 5. Encerrar e remover o ambiente
+
+Pare a aplicação com `Ctrl + C` e remova o container do banco:
+
+```bash
+docker stop nutrilink-mysql
+docker rm nutrilink-mysql
 ```
- 
+
+---
+
+
+## 🧪 Testando a API (roteiro completo)
+
+Todos os testes podem ser feitos pelo **Swagger UI** (http://localhost:9000/) ou pelos comandos `curl` abaixo. Os IDs são UUIDs gerados pelo banco: copie o `id` de cada resposta e substitua nos passos seguintes.
+
+As etapas precisam seguir esta ordem, porque cada uma depende da anterior:
+
+```
+Profissionais → Doadora → Triagem (aprova a doadora) → Corredor → Coleta → Sincronização
+                   └──────────→ Ticket de suporte → Especialista assume → Mensagens → Fechar
+```
+
+### 1. Cadastrar profissionais de saúde
+
+Especialista em lactação (atende os tickets):
+```bash
+curl -X POST http://localhost:9000/api/v2/profissionais-saude \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nomeCompleto": "Dra. Ana Souza",
+    "registroConselho": "CRM-SP 123456",
+    "tipoProfissional": "ESPECIALISTA_LACTACAO"
+  }'
+```
+
+Analista (opcional, pode ser vinculado à triagem):
+```bash
+curl -X POST http://localhost:9000/api/v2/profissionais-saude \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nomeCompleto": "Carlos Lima",
+    "registroConselho": "COREN-SP 987654",
+    "tipoProfissional": "ANALISTA_NIVEL_1"
+  }'
+```
+
+### 2. Cadastrar uma doadora
+
+A doadora começa com status `PENDENTE`. Ela precisa ter 18 anos ou mais, e o CPF (11 dígitos) e o CEP (8 dígitos) devem ser enviados sem pontuação.
+
+```bash
+curl -X POST http://localhost:9000/api/v2/doadoras \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nomeCompleto": "Maria Oliveira",
+    "cpf": "12345678901",
+    "dataNascimento": "1995-04-20",
+    "telefone": "11987654321",
+    "cep": "07010000",
+    "enderecoCompleto": "Rua das Flores, 100 - Centro"
+  }'
+```
+
+### 3. Realizar a triagem
+
+O campo `respostasQuestionario` é um **texto contendo um JSON**, por isso as aspas internas são escapadas. O score começa em 100 e sofre descontos conforme as respostas:
+
+| Resposta `true` | Desconto |
+|---|---|
+| `medicamento` | -40 |
+| `doencaCronica` | -30 |
+| `alcool` | -20 |
+| `fumo` | -10 |
+
+O resultado depende do score final: **≥ 70** resulta em `APROVADA` (a doadora passa a `APROVADA`), **de 40 a 69** em `PENDENTE_REVISAO`, e **abaixo de 40** em `REPROVADA`. As chaves devem ser escritas sem espaço após os dois-pontos (`"medicamento":true`).
+
+Triagem aprovada (score 100):
+```bash
+curl -X POST http://localhost:9000/api/v2/triagens \
+  -H "Content-Type: application/json" \
+  -d '{
+    "doadoraId": "<ID_DOADORA>",
+    "respostasQuestionario": "{\"medicamento\":false,\"doencaCronica\":false,\"alcool\":false,\"fumo\":false}"
+  }'
+```
+
+Para testar a revisão humana (score 60), envie `"{\"medicamento\":true}"`. A triagem aparecerá em `GET /api/v2/triagens/pendentes-revisao`.
+
+### 4. Cadastrar um corredor logístico
+
+Em `cepsAtendidos`, informe os **3 primeiros dígitos** dos CEPs atendidos, separados por vírgula. O corredor já é criado homologado.
+
+```bash
+curl -X POST http://localhost:9000/api/v2/logistica \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nomeCorredor": "Corredor Guarulhos Centro",
+    "cepsAtendidos": "070,071,072"
+  }'
+```
+
+### 5. Agendar uma coleta
+
+Para agendar, três condições precisam ser atendidas: a doadora deve estar `APROVADA`, o corredor deve estar homologado, e o CEP da doadora deve pertencer ao corredor. A data precisa ser futura.
+
+```bash
+curl -X POST http://localhost:9000/api/v2/coleta \
+  -H "Content-Type: application/json" \
+  -d '{
+    "doadoraId": "<ID_DOADORA>",
+    "corredorId": "<ID_CORREDOR>",
+    "dataAgendada": "2027-01-15T09:00:00",
+    "volumeEstimadoMl": 300
+  }'
+```
+
+Atualizar o status da coleta (`AGENDADA`, `EM_ROTA`, `CONCLUIDA`, `CANCELADA`):
+```bash
+curl -X PATCH http://localhost:9000/api/v2/coleta/<ID_COLETA>/status/EM_ROTA
+```
+
+### 6. Sincronizar a coleta com o sistema externo
+
+Registrar o envio (status `PENDENTE`). O payload é gerado automaticamente a partir da coleta:
+```bash
+curl -X POST http://localhost:9000/api/v2/sincronizacoes \
+  -H "Content-Type: application/json" \
+  -d '{ "coletaId": "<ID_COLETA>" }'
+```
+
+Confirmar com o protocolo devolvido pelo sistema externo (status `SUCESSO`):
+```bash
+curl -X PATCH http://localhost:9000/api/v2/sincronizacoes/<ID_SINCRONIZACAO>/confirmar \
+  -H "Content-Type: application/json" \
+  -d '{ "protocoloGerado": "BLH-2027-000123" }'
+```
+
+Existe também o fluxo alternativo de falha: `PATCH /api/v2/sincronizacoes/<ID>/falha` leva ao status `FALHA`, e `PATCH /api/v2/sincronizacoes/<ID>/reprocessar` devolve ao status `PENDENTE`.
+
+### 7. Suporte: ticket e mensagens
+
+Abrir um ticket:
+```bash
+curl -X POST http://localhost:9000/api/v2/tickets-suporte \
+  -H "Content-Type: application/json" \
+  -d '{
+    "doadoraId": "<ID_DOADORA>",
+    "assunto": "Dúvida sobre armazenamento do leite"
+  }'
+```
+
+O especialista assume o ticket (somente `ESPECIALISTA_LACTACAO` com credencial ativa):
+```bash
+curl -X PATCH http://localhost:9000/api/v2/tickets-suporte/<ID_TICKET>/assumir/<ID_ESPECIALISTA>
+```
+
+Enviar uma mensagem (`remetenteTipo` pode ser `DOADORA` ou `PROFISSIONAL`):
+```bash
+curl -X POST http://localhost:9000/api/v2/mensagens-suporte \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ticketId": "<ID_TICKET>",
+    "remetenteTipo": "DOADORA",
+    "remetenteId": "<ID_DOADORA>",
+    "conteudoMensagem": "Posso congelar o leite em pote de vidro?"
+  }'
+```
+
+Listar as mensagens e fechar o ticket:
+```bash
+curl http://localhost:9000/api/v2/mensagens-suporte/ticket/<ID_TICKET>
+curl -X PATCH http://localhost:9000/api/v2/tickets-suporte/<ID_TICKET>/fechar
+```
+
+### 8. Testes de validação e erros
+
+Todos os erros seguem o mesmo formato:
+
+```json
+{
+  "timestamp": "2026-09-23T14:30:00",
+  "status": 400,
+  "erro": "Bad Request",
+  "mensagem": "Dados inválidos na requisição",
+  "caminho": "/api/v2/doadoras",
+  "campos": { "cpf": "CPF deve ter 11 dígitos" }
+}
+```
+
+| Cenário | Como provocar | Resposta esperada |
+|---|---|---|
+| Campo obrigatório ausente ou inválido | `POST /doadoras` com `"cpf": "123"` | **400** com a lista de `campos` |
+| JSON malformado ou enum inexistente | `"tipoProfissional": "MEDICO"` | **400** |
+| UUID inválido na URL | `GET /api/v2/doadoras/abc` | **400** |
+| Regra de negócio | Cadastrar o mesmo CPF duas vezes ou uma doadora menor de idade | **400** |
+| Recurso inexistente | `GET /api/v2/doadoras/00000000-0000-0000-0000-000000000000` | **404** |
+| Estado inválido | Agendar coleta para doadora `PENDENTE` ou enviar mensagem em ticket `FECHADO` | **409** |
+| Integridade | Excluir uma doadora que já possui triagem ou coleta | **409** |
+
 ---
  
 ## 📦 Dependências Principais

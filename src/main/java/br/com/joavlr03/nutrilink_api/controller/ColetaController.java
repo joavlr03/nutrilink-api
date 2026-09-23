@@ -2,7 +2,7 @@ package br.com.joavlr03.nutrilink_api.controller;
 
 import java.util.List;
 import java.util.UUID;
-
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,7 +20,6 @@ import br.com.joavlr03.nutrilink_api.model.Coleta;
 import br.com.joavlr03.nutrilink_api.model.enums.StatusColeta;
 import br.com.joavlr03.nutrilink_api.service.ColetaService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 

@@ -1,0 +1,88 @@
+﻿NutriLink API - resultado dos testes (2026-09-23 01:47:55)
+Base: http://localhost:9000
+Passaram: 84 / 84
+
+[OK   ] Swagger UI na raiz | GET    / | esperado 200, recebido 200
+[OK   ] OpenAPI lista o endpoint de sincronizacoes | GET    /v3/api-docs | esperado 200, recebido 200
+[OK   ] Cadastrar especialista em lactacao | POST   /api/v2/profissionais-saude | esperado 201, recebido 201
+[OK   ] Cadastrar analista nivel 1 | POST   /api/v2/profissionais-saude | esperado 201, recebido 201
+[OK   ] Registro de conselho duplicado | POST   /api/v2/profissionais-saude | esperado 400, recebido 400
+[OK   ] Tipo de profissional inexistente (enum invalido) | POST   /api/v2/profissionais-saude | esperado 400, recebido 400
+[OK   ] Buscar profissional por ID | GET    /api/v2/profissionais-saude/ecb9bfce-4682-4e54-831e-8d7f27b9cc8f | esperado 200, recebido 200
+[OK   ] Listar profissionais | GET    /api/v2/profissionais-saude | esperado 200, recebido 200
+[OK   ] Listar profissionais ativos | GET    /api/v2/profissionais-saude/ativos | esperado 200, recebido 200
+[OK   ] Listar por tipo | GET    /api/v2/profissionais-saude/tipo/ESPECIALISTA_LACTACAO | esperado 200, recebido 200
+[OK   ] Inativar credencial | PATCH  /api/v2/profissionais-saude/49528f34-a607-4970-b827-115636ed2b62/inativar | esperado 200, recebido 200
+[OK   ] Reativar credencial | PATCH  /api/v2/profissionais-saude/49528f34-a607-4970-b827-115636ed2b62/reativar | esperado 200, recebido 200
+[OK   ] Cadastrar doadora (status inicial PENDENTE) | POST   /api/v2/doadoras | esperado 201, recebido 201
+[OK   ] Cadastrar segunda doadora (para revisao humana) | POST   /api/v2/doadoras | esperado 201, recebido 201
+[OK   ] CPF duplicado | POST   /api/v2/doadoras | esperado 400, recebido 400
+[OK   ] Doadora menor de idade | POST   /api/v2/doadoras | esperado 400, recebido 400
+[OK   ] CPF com tamanho invalido (erro lista os campos) | POST   /api/v2/doadoras | esperado 400, recebido 400
+[OK   ] Campos obrigatorios ausentes | POST   /api/v2/doadoras | esperado 400, recebido 400
+[OK   ] JSON malformado | POST   /api/v2/doadoras | esperado 400, recebido 400
+[OK   ] Buscar doadora por ID | GET    /api/v2/doadoras/a7ccf260-1650-4600-b7cc-f77a05ada410 | esperado 200, recebido 200
+[OK   ] Listar doadoras | GET    /api/v2/doadoras | esperado 200, recebido 200
+[OK   ] ID inexistente | GET    /api/v2/doadoras/00000000-0000-0000-0000-000000000000 | esperado 404, recebido 404
+[OK   ] ID em formato invalido | GET    /api/v2/doadoras/abc | esperado 400, recebido 400
+[OK   ] Cadastrar corredor (ja homologado) | POST   /api/v2/logistica | esperado 201, recebido 201
+[OK   ] Cadastrar corredor de outra regiao | POST   /api/v2/logistica | esperado 201, recebido 201
+[OK   ] Corredor sem campos obrigatorios | POST   /api/v2/logistica | esperado 400, recebido 400
+[OK   ] Buscar corredor por ID | GET    /api/v2/logistica/548cb1ed-1a22-4485-b7e9-5a6354004d09 | esperado 200, recebido 200
+[OK   ] Listar corredores | GET    /api/v2/logistica | esperado 200, recebido 200
+[OK   ] Listar corredores ativos | GET    /api/v2/logistica/ativos | esperado 200, recebido 200
+[OK   ] Coleta para doadora ainda PENDENTE e bloqueada | POST   /api/v2/coleta | esperado 409, recebido 409
+[OK   ] Triagem aprovada (score 100) | POST   /api/v2/triagens | esperado 201, recebido 201
+[OK   ] Doadora passou para APROVADA | GET    /api/v2/doadoras/a7ccf260-1650-4600-b7cc-f77a05ada410 | esperado 200, recebido 200
+[OK   ] Triagem que exige revisao humana (score 60) | POST   /api/v2/triagens | esperado 201, recebido 201
+[OK   ] Triagem com especialista no lugar de analista | POST   /api/v2/triagens | esperado 400, recebido 400
+[OK   ] Triagem sem questionario | POST   /api/v2/triagens | esperado 400, recebido 400
+[OK   ] Buscar triagem por ID | GET    /api/v2/triagens/25d7a77e-72bd-4b95-aa45-475259d8cf6d | esperado 200, recebido 200
+[OK   ] Listar triagens | GET    /api/v2/triagens | esperado 200, recebido 200
+[OK   ] Listar triagens da doadora | GET    /api/v2/triagens/doadora/a7ccf260-1650-4600-b7cc-f77a05ada410 | esperado 200, recebido 200
+[OK   ] Listar triagens pendentes de revisao | GET    /api/v2/triagens/pendentes-revisao | esperado 200, recebido 200
+[OK   ] Agendar coleta | POST   /api/v2/coleta | esperado 201, recebido 201
+[OK   ] Coleta com data no passado | POST   /api/v2/coleta | esperado 400, recebido 400
+[OK   ] CEP da doadora fora do corredor | POST   /api/v2/coleta | esperado 400, recebido 400
+[OK   ] Desabilitar corredor | PATCH  /api/v2/logistica/17b6a044-3ef6-47b9-900a-1e763e7aecbe/desabilitar | esperado 200, recebido 200
+[OK   ] Coleta em corredor desabilitado | POST   /api/v2/coleta | esperado 409, recebido 409
+[OK   ] Habilitar corredor | PATCH  /api/v2/logistica/17b6a044-3ef6-47b9-900a-1e763e7aecbe/habilitar | esperado 200, recebido 200
+[OK   ] Atualizar status para EM_ROTA | PATCH  /api/v2/coleta/af6d5aa8-1726-44f5-b6f6-5f1bd9baebf7/status/EM_ROTA | esperado 200, recebido 200
+[OK   ] Status de coleta inexistente na URL | PATCH  /api/v2/coleta/af6d5aa8-1726-44f5-b6f6-5f1bd9baebf7/status/VOANDO | esperado 400, recebido 400
+[OK   ] Buscar coleta por ID | GET    /api/v2/coleta/af6d5aa8-1726-44f5-b6f6-5f1bd9baebf7 | esperado 200, recebido 200
+[OK   ] Listar coletas | GET    /api/v2/coleta | esperado 200, recebido 200
+[OK   ] Listar coletas da doadora | GET    /api/v2/coleta/doadora/a7ccf260-1650-4600-b7cc-f77a05ada410 | esperado 200, recebido 200
+[OK   ] Listar coletas por status | GET    /api/v2/coleta/status/EM_ROTA | esperado 200, recebido 200
+[OK   ] Registrar sincronizacao da coleta | POST   /api/v2/sincronizacoes | esperado 201, recebido 201
+[OK   ] Segunda sincronizacao para a mesma coleta | POST   /api/v2/sincronizacoes | esperado 409, recebido 409
+[OK   ] Registrar falha no envio | PATCH  /api/v2/sincronizacoes/668905be-2efe-425f-9341-acf9c70c4c2d/falha | esperado 200, recebido 200
+[OK   ] Confirmar sincronizacao com FALHA e bloqueado | PATCH  /api/v2/sincronizacoes/668905be-2efe-425f-9341-acf9c70c4c2d/confirmar | esperado 409, recebido 409
+[OK   ] Reprocessar (volta para PENDENTE) | PATCH  /api/v2/sincronizacoes/668905be-2efe-425f-9341-acf9c70c4c2d/reprocessar | esperado 200, recebido 200
+[OK   ] Confirmar sem protocolo | PATCH  /api/v2/sincronizacoes/668905be-2efe-425f-9341-acf9c70c4c2d/confirmar | esperado 400, recebido 400
+[OK   ] Confirmar com protocolo | PATCH  /api/v2/sincronizacoes/668905be-2efe-425f-9341-acf9c70c4c2d/confirmar | esperado 200, recebido 200
+[OK   ] Buscar sincronizacao por ID | GET    /api/v2/sincronizacoes/668905be-2efe-425f-9341-acf9c70c4c2d | esperado 200, recebido 200
+[OK   ] Buscar sincronizacao da coleta | GET    /api/v2/sincronizacoes/coleta/af6d5aa8-1726-44f5-b6f6-5f1bd9baebf7 | esperado 200, recebido 200
+[OK   ] Listar sincronizacoes | GET    /api/v2/sincronizacoes | esperado 200, recebido 200
+[OK   ] Listar sincronizacoes por status | GET    /api/v2/sincronizacoes/status/SUCESSO | esperado 200, recebido 200
+[OK   ] Abrir ticket | POST   /api/v2/tickets-suporte | esperado 201, recebido 201
+[OK   ] Ticket sem assunto | POST   /api/v2/tickets-suporte | esperado 400, recebido 400
+[OK   ] Analista tentando assumir ticket | PATCH  /api/v2/tickets-suporte/b755905d-6f30-4bcd-b04d-c0b1d27ccf16/assumir/49528f34-a607-4970-b827-115636ed2b62 | esperado 400, recebido 400
+[OK   ] Especialista assume ticket | PATCH  /api/v2/tickets-suporte/b755905d-6f30-4bcd-b04d-c0b1d27ccf16/assumir/ecb9bfce-4682-4e54-831e-8d7f27b9cc8f | esperado 200, recebido 200
+[OK   ] Mensagem da doadora | POST   /api/v2/mensagens-suporte | esperado 201, recebido 201
+[OK   ] Mensagem do especialista | POST   /api/v2/mensagens-suporte | esperado 201, recebido 201
+[OK   ] Mensagem com remetente inexistente | POST   /api/v2/mensagens-suporte | esperado 404, recebido 404
+[OK   ] Buscar mensagem por ID | GET    /api/v2/mensagens-suporte/d79ccded-0ff5-47ab-b495-ac18f8ff1fa2 | esperado 200, recebido 200
+[OK   ] Listar mensagens | GET    /api/v2/mensagens-suporte | esperado 200, recebido 200
+[OK   ] Listar mensagens do ticket | GET    /api/v2/mensagens-suporte/ticket/b755905d-6f30-4bcd-b04d-c0b1d27ccf16 | esperado 200, recebido 200
+[OK   ] Buscar ticket por ID | GET    /api/v2/tickets-suporte/b755905d-6f30-4bcd-b04d-c0b1d27ccf16 | esperado 200, recebido 200
+[OK   ] Listar tickets | GET    /api/v2/tickets-suporte | esperado 200, recebido 200
+[OK   ] Listar tickets da doadora | GET    /api/v2/tickets-suporte/doadora/a7ccf260-1650-4600-b7cc-f77a05ada410 | esperado 200, recebido 200
+[OK   ] Listar tickets por status | GET    /api/v2/tickets-suporte/status/EM_ANDAMENTO | esperado 200, recebido 200
+[OK   ] Fechar ticket | PATCH  /api/v2/tickets-suporte/b755905d-6f30-4bcd-b04d-c0b1d27ccf16/fechar | esperado 200, recebido 200
+[OK   ] Mensagem em ticket fechado e bloqueada | POST   /api/v2/mensagens-suporte | esperado 409, recebido 409
+[OK   ] Excluir doadora com triagem/coleta vinculadas | DELETE /api/v2/doadoras/a7ccf260-1650-4600-b7cc-f77a05ada410 | esperado 409, recebido 409
+[OK   ] Cadastrar doadora avulsa para exclusao | POST   /api/v2/doadoras | esperado 201, recebido 201
+[OK   ] Excluir doadora sem vinculos | DELETE /api/v2/doadoras/105458c7-0e66-49f9-915c-be5a3ddacb46 | esperado 204, recebido 204
+[OK   ] Doadora excluida nao e mais encontrada | GET    /api/v2/doadoras/105458c7-0e66-49f9-915c-be5a3ddacb46 | esperado 404, recebido 404
+[OK   ] Excluir mensagem | DELETE /api/v2/mensagens-suporte/d79ccded-0ff5-47ab-b495-ac18f8ff1fa2 | esperado 204, recebido 204
+[OK   ] Excluir registro inexistente | DELETE /api/v2/logistica/00000000-0000-0000-0000-000000000000 | esperado 404, recebido 404
